@@ -1,0 +1,18 @@
+{
+  "search.exclude": {
+    "**/.turbo": true,
+    "**/dist": true,
+    "**/node_modules": true,
+    "**/pages/content-runtime": true,
+    "**/pages/content-ui": true,
+    "**/pages/content-devtools": true,
+    "**/pages/devtools": true,
+    "**/pages/devtools-panel": true,
+    "**/pages/new-tab": true
+  },
+  "git.enabled": true,
+  "prettier.ignorePath": "**.yml",
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "todo-tree.general.tags": ["BUG", "HACK", "FIXME", "TODO", "[ ]", "[x]", "NOTE", "CHECKLIST", "WARNING"]
+}

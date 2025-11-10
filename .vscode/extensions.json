@@ -1,0 +1,8 @@
+{
+  "recommendations": [
+    "esbenp.prettier-vscode",
+    "Gruntfuggly.todo-tree",
+    "aaron-bond.better-comments",
+    "GitHub.vscode-pull-request-github"
+  ]
+}
