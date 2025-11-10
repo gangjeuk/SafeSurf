@@ -6,10 +6,10 @@ import jsxA11y from 'eslint-plugin-jsx-a11y';
 import eslintPluginPrettierRecommended from 'eslint-plugin-prettier/recommended';
 import reactPlugin from 'eslint-plugin-react';
 import { browser, es2020, node } from 'globals';
-import { config, configs as tsConfigs, parser as tsParser } from 'typescript-eslint';
+import { configs as tsConfigs, parser as tsParser } from 'typescript-eslint';
 import type { FixupConfigArray } from '@eslint/compat';
 
-export default config(
+export default [
   // Shared configs
   js.configs.recommended,
   ...tsConfigs.recommended,
@@ -25,7 +25,15 @@ export default config(
   },
   // Custom config
   {
-    ignores: ['**/build/**', '**/dist/**', '**/node_modules/**', 'chrome-extension/manifest.js'],
+    ignores: [
+      '**/build/**',
+      '**/dist/**',
+      '**/node_modules/**',
+      'chrome-extension/manifest.js',
+      'chrome-extension/manifest.ts',
+      'chrome-extension/public/buildDomTree.js',
+      'chrome-extension/public/permission/permission.js',
+    ],
   },
   {
     files: ['**/*.{ts,tsx}'],
@@ -54,12 +62,24 @@ export default config(
       'react/prop-types': 'off',
       'prefer-const': 'error',
       'no-var': 'error',
-      'func-style': ['error', 'expression', { allowArrowFunctions: true }],
       'no-restricted-imports': [
         'error',
         {
           name: 'type-fest',
           message: 'Please import from `@extension/shared` instead of `type-fest`.',
+        },
+      ],
+      'no-unused-vars': 'off',
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          args: 'all',
+          argsIgnorePattern: '^_',
+          caughtErrors: 'all',
+          caughtErrorsIgnorePattern: '^_',
+          destructuredArrayIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          ignoreRestSiblings: true,
         },
       ],
       'arrow-body-style': ['error', 'as-needed'],
@@ -88,7 +108,7 @@ export default config(
       'import-x/no-deprecated': 'error',
       'import-x/no-duplicates': ['error', { considerQueryString: true, 'prefer-inline': false }],
       'import-x/consistent-type-specifier-style': 'error',
-      'import-x/exports-last': 'error',
+      // 'import-x/exports-last': 'error',
       'import-x/first': 'error',
     },
     linterOptions: {
@@ -102,4 +122,4 @@ export default config(
       'no-restricted-imports': 'off',
     },
   },
-);
+];

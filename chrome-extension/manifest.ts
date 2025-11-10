@@ -1,7 +1,50 @@
+import deepmerge from 'deepmerge';
 import { readFileSync } from 'node:fs';
 import type { ManifestType } from '@extension/shared';
 
 const packageJson = JSON.parse(readFileSync('./package.json', 'utf8'));
+
+const isFirefox = process.env.__FIREFOX__ === 'true';
+const isOpera = process.env.__OPERA__ === 'true';
+
+/**
+ * If you want to disable the sidePanel, you can delete withSidePanel function and remove the sidePanel HoC on the manifest declaration.
+ *
+ * ```js
+ * const manifest = { // remove `withSidePanel()`
+ * ```
+ */
+function withSidePanel(manifest: ManifestType) {
+  // Firefox does not support sidePanel
+  if (isFirefox) {
+    return manifest;
+  }
+  return deepmerge(manifest, {
+    side_panel: {
+      default_path: 'side-panel/index.html',
+    },
+    permissions: ['sidePanel'],
+  });
+}
+
+/**
+ * Adds Opera sidebar support using the sidebar_action API.
+ * This is compatible with Chrome extensions and won't break Chrome Web Store validation.
+ */
+function withOperaSidebar(manifest: ManifestType) {
+  // Only add Opera sidebar_action if building specifically for Opera
+  if (isFirefox || !isOpera) {
+    return manifest;
+  }
+
+  return deepmerge(manifest, {
+    sidebar_action: {
+      default_panel: 'side-panel/index.html',
+      default_title: 'Nanobrowser',
+      default_icon: 'icon-32.png',
+    },
+  });
+}
 
 /**
  * @prop default_locale
@@ -21,7 +64,7 @@ const packageJson = JSON.parse(readFileSync('./package.json', 'utf8'));
 const manifest = {
   manifest_version: 3,
   default_locale: 'en',
-  name: '__MSG_extensionName__',
+  name: '__MSG_app_metadata_name__',
   browser_specific_settings: {
     gecko: {
       id: 'example@example.com',
@@ -29,21 +72,31 @@ const manifest = {
     },
   },
   version: packageJson.version,
-  description: '__MSG_extensionDescription__',
+  description: '__MSG_app_metadata_description__',
   host_permissions: ['<all_urls>'],
-  permissions: ['storage', 'scripting', 'tabs', 'notifications', 'sidePanel'],
+  permissions: [
+    'storage',
+    'scripting',
+    'tabs',
+    'sidePanel',
+    'notifications',
+    'activeTab',
+    'debugger',
+    'unlimitedStorage',
+    'webNavigation',
+  ],
   options_page: 'options/index.html',
   background: {
     service_worker: 'background.js',
     type: 'module',
   },
-  action: {
-    default_popup: 'popup/index.html',
-    default_icon: 'icon-34.png',
-  },
-  chrome_url_overrides: {
-    newtab: 'new-tab/index.html',
-  },
+  // action: {
+  //   default_popup: 'popup/index.html',
+  //   default_icon: 'icon-34.png',
+  // },
+  // chrome_url_overrides: {
+  //   newtab: 'new-tab/index.html',
+  // },
   icons: {
     '128': 'icon-128.png',
   },
@@ -52,18 +105,18 @@ const manifest = {
       matches: ['http://*/*', 'https://*/*', '<all_urls>'],
       js: ['content/all.iife.js'],
     },
-    {
-      matches: ['https://example.com/*'],
-      js: ['content/example.iife.js'],
-    },
-    {
-      matches: ['http://*/*', 'https://*/*', '<all_urls>'],
-      js: ['content-ui/all.iife.js'],
-    },
-    {
-      matches: ['https://example.com/*'],
-      js: ['content-ui/example.iife.js'],
-    },
+    // {
+    //   matches: ['https://example.com/*'],
+    //   js: ['content/example.iife.js'],
+    // },
+    // {
+    //   matches: ['http://*/*', 'https://*/*', '<all_urls>'],
+    //   js: ['content-ui/all.iife.js'],
+    // },
+    // {
+    //   matches: ['https://example.com/*'],
+    //   js: ['content-ui/example.iife.js'],
+    // },
     {
       matches: ['http://*/*', 'https://*/*', '<all_urls>'],
       css: ['content.css'],
@@ -72,7 +125,15 @@ const manifest = {
   devtools_page: 'devtools/index.html',
   web_accessible_resources: [
     {
-      resources: ['*.js', '*.css', '*.svg', 'icon-128.png', 'icon-34.png'],
+      resources: [
+        '*.js',
+        '*.css',
+        '*.svg',
+        'icon-128.png',
+        'icon-34.png',
+        'permission/index.html',
+        'permission/permission.js',
+      ],
       matches: ['*://*/*'],
     },
   ],
