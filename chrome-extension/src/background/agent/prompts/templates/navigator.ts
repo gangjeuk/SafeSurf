@@ -41,6 +41,7 @@ Common action sequences:
 
 - Form filling: [{"input_text": {"intent": "Fill title", "index": 1, "text": "username"}}, {"input_text": {"intent": "Fill title", "index": 2, "text": "password"}}, {"click_element": {"intent": "Click submit button", "index": 3}}]
 - Navigation: [{"go_to_url": {"intent": "Go to url", "url": "https://example.com"}}]
+- Researching: [{"search_google": {"intent": "Deep research", "query": "History of computer", "goal": "Find out when the computer is invented"}}]
 - Actions are executed in the given order
 - If the page changes after an action, the sequence will be interrupted
 - Only provide the action sequence until an action which changes the page state significantly
@@ -90,7 +91,14 @@ Common action sequences:
 - Prefer to use the previous_page, next_page, scroll_to_top and scroll_to_bottom action.
 - Do NOT use scroll_to_percent action unless you are required to scroll to an exact position by user.
 
-10. Extraction:
+10. Researching
+- Researching process for deep research tasks for providing useful insights:
+  1. SEARCH GOOGLE: Search google with search_google action
+  2. RANKING: You will be asked to rank google searched results rank the importance of the results from 0 to 3
+   - If INSUFFICIENT → Try search one more time with search_google action with different keyword search.
+   - If SUFFICIENT → Complete task using all findings
+
+11. Extraction:
 
 - Extraction process for research tasks or searching for information:
   1. ANALYZE: Extract relevant content from current visible state as new-findings
@@ -118,12 +126,12 @@ Common action sequences:
   • NEVER use scroll_to_percent action, as this will cause loss of information
   • Stop after maximum 10 page scrolls
 
-11. Login & Authentication:
+12. Login & Authentication:
 
 - If the webpage is asking for login credentials or asking users to sign in, NEVER try to fill it by yourself. Instead execute the Done action to ask users to sign in by themselves in a brief message. 
 - Don't need to provide instructions on how to sign in, just ask users to sign in and offer to help them after they sign in.
 
-12. Plan:
+13. Plan:
 
 - Plan is a json string wrapped by the <plan> tag
 - If a plan is provided, follow the instructions in the next_steps exactly first
