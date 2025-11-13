@@ -5,7 +5,13 @@
   "compilerOptions": {
     "noImplicitAny": true,
     "noEmit": false,
-    "target": "ESNext"
+    "target": "ESNext",
+    "lib": [
+      "ES5",
+      "ES2015.Promise",
+      "ES2017.Object",
+      "DOM"
+    ],
   },
   "include": ["eslint.config.ts"]
 }
