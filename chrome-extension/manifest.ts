@@ -101,6 +101,9 @@ const manifest = withOperaSidebar(
     icons: {
       '128': 'icon-128.png',
     },
+    content_security_policy: {
+      extension_pages: "script-src 'self' 'wasm-unsafe-eval'; object-src 'self';",
+    },
     content_scripts: [
       {
         matches: ['http://*/*', 'https://*/*', '<all_urls>'],
