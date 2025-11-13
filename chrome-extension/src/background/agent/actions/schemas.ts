@@ -14,8 +14,24 @@ export const doneActionSchema: ActionSchema = {
     success: z.boolean(),
   }),
 };
+/**
+ * Begin - Google page specific actions
+ */
 
-// Basic Navigation Actions
+export const parseGoogleSearchResultPageSchema: ActionSchema = {
+  name: 'parse_google',
+  description: 'Parse the HTML data returned by google search query',
+  schema: z.object({
+    intent: z.string().default('').describe('purpose of this action'),
+    goal: z.string(),
+  }),
+};
+
+/**
+ * End - Google pages specific actions
+ */
+
+/** Begin - Basic Navigation Actions */
 export const searchGoogleActionSchema: ActionSchema = {
   name: 'search_google',
   description:
@@ -23,6 +39,7 @@ export const searchGoogleActionSchema: ActionSchema = {
   schema: z.object({
     intent: z.string().default('').describe('purpose of this action'),
     query: z.string(),
+    goal: z.string(),
   }),
 };
 
@@ -63,8 +80,9 @@ export const inputTextActionSchema: ActionSchema = {
     xpath: z.string().nullable().optional().describe('xpath of the element'),
   }),
 };
+// END - Basic Navigation Actions
 
-// Tab Management Actions
+// BEGIN - Tab Management Actions
 export const switchTabActionSchema: ActionSchema = {
   name: 'switch_tab',
   description: 'Switch to tab by tab id',
@@ -101,8 +119,9 @@ export const closeTabActionSchema: ActionSchema = {
 //     goal: z.string(),
 //   }),
 // };
+// END - Tab Management Actions
 
-// Cache Actions
+// BEGIN - Cache Actions
 export const cacheContentActionSchema: ActionSchema = {
   name: 'cache_content',
   description: 'Cache what you have found so far from the current page for future use',

@@ -3,7 +3,6 @@ packages:
   - pages/*
   - packages/*
   - tests/*
-
 onlyBuiltDependencies:
   - '@parcel/watcher'
   - '@swc/core'
@@ -11,3 +10,5 @@ onlyBuiltDependencies:
   - esbuild
   - geckodriver
   - unrs-resolver
+patchedDependencies:
+  '@electric-sql/pglite@0.3.14': patches/@electric-sql__pglite@0.3.14.patch

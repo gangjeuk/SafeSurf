@@ -222,7 +222,7 @@ export abstract class BaseAgent<T extends z.ZodType, M = unknown> {
   }
 
   // Execute the agent and return the result
-  abstract execute(): Promise<AgentOutput<M>>;
+  abstract execute(instruction?: string): Promise<AgentOutput<M>>;
 
   // Helper method to validate metadata
   protected validateModelOutput(data: unknown): this['ModelOutput'] | undefined {

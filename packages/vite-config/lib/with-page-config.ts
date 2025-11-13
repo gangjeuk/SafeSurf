@@ -20,6 +20,7 @@ export const withPageConfig = (config: UserConfig) =>
       {
         define: {
           'process.env': env,
+          'process.versions': undefined,
         },
         base: '',
         plugins: [react(), IS_DEV && watchRebuildPlugin({ refresh: true }), nodePolyfills()],
@@ -32,6 +33,12 @@ export const withPageConfig = (config: UserConfig) =>
           rollupOptions: {
             external: ['chrome'],
           },
+        },
+        optimizeDeps: {
+          exclude: ['@electric-sql/pglite'],
+        },
+        worker: {
+          format: 'es',
         },
       },
       config,

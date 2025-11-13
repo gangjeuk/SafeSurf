@@ -8,6 +8,7 @@ import { injectBuildDomTreeScripts } from './browser/dom/service';
 import { createLogger } from './log';
 import { analytics } from './services/analytics';
 import { SpeechToTextService } from './services/speechToText';
+import { db, pg } from '@extension/db';
 import { t } from '@extension/i18n';
 import {
   agentModelStore,
@@ -52,6 +53,7 @@ chrome.tabs.onRemoved.addListener(tabId => {
 });
 
 logger.info('background loaded');
+logger.info(db, pg);
 
 // Initialize analytics
 analytics.init().catch(error => {
