@@ -131,7 +131,6 @@ export class Action {
 
 // TODO: can not make every action optional, don't know why
 export function buildDynamicActionSchema(actions: Action[]): z.ZodType {
-  logger.error(actions);
   let schema = z.object({});
   for (const action of actions) {
     // create a schema for the action, it could be action.schema.schema or null
@@ -141,7 +140,6 @@ export function buildDynamicActionSchema(actions: Action[]): z.ZodType {
       [action.name()]: actionSchema.nullable().optional().describe(action.schema.description),
     });
   }
-  logger.error(schema);
   return schema;
 }
 
