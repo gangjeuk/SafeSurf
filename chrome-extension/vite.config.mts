@@ -49,4 +49,10 @@ export default defineConfig({
       external: ['chrome'],
     },
   },
+  optimizeDeps: {
+    exclude: ['@electric-sql/pglite'],
+  },
+  worker: {
+    format: 'es',
+  },
 });

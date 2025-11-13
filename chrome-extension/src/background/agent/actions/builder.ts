@@ -20,8 +20,10 @@ import {
   scrollToTopActionSchema,
   scrollToBottomActionSchema,
 } from './schemas';
+import { SearcherAgent } from '../agents/searcher';
 import { ExecutionState, Actors } from '../event/types';
 import { wrapUntrustedContent } from '../messages/utils';
+import { SearcherPrompt } from '../prompts/searcher';
 import { t } from '@extension/i18n';
 import { ActionResult } from '@src/background/agent/types';
 import { createLogger } from '@src/background/log';
@@ -143,11 +145,11 @@ export function buildDynamicActionSchema(actions: Action[]): z.ZodType {
 
 export class ActionBuilder {
   private readonly context: AgentContext;
-  private readonly extractorLLM: BaseChatModel;
+  private readonly searcher: SearcherAgent;
 
   constructor(context: AgentContext, extractorLLM: BaseChatModel) {
     this.context = context;
-    this.extractorLLM = extractorLLM;
+    this.searcher = new SearcherAgent({ chatLLM: extractorLLM, context: context, prompt: new SearcherPrompt() });
   }
 
   buildDefaultActions() {
@@ -165,17 +167,76 @@ export class ActionBuilder {
 
     const searchGoogle = new Action(async (input: z.infer<typeof searchGoogleActionSchema.schema>) => {
       const context = this.context;
+      const goal = input.goal;
       const intent = input.intent || t('act_searchGoogle_start', [input.query]);
       context.emitEvent(Actors.NAVIGATOR, ExecutionState.ACT_START, intent);
 
       await context.browserContext.navigateTo(`https://www.google.com/search?q=${input.query}`);
 
-      const msg2 = t('act_searchGoogle_ok', [input.query]);
-      context.emitEvent(Actors.NAVIGATOR, ExecutionState.ACT_OK, msg2);
-      return new ActionResult({
-        extractedContent: msg2,
-        includeInMemory: true,
-      });
+      const page = await context.browserContext.getCurrentPage();
+
+      const urlNodes = await page.querySelectorAll('.A6K0A');
+      const youtubeNodes = await page.querySelectorAll('.LLtSOc');
+      const searchRet: { srcName: string; url: string; title: string; content: string; rank: number }[] = [];
+      for (let i = 0; i < urlNodes.length; i++) {
+        const node = urlNodes[i];
+        try {
+          const srcName = await node.$eval('.VuuXrf', e => e.textContent);
+          const url = await node.$eval('.zReHs', e => e.getAttribute('href'));
+          const title = await node.$eval('.LC20lb', e => e.textContent);
+          const content = await node.$eval('.VwiC3b', e => e.textContent);
+
+          if (srcName && url && title && content) {
+            searchRet.push({ srcName, url, title, content, rank: -1 });
+          }
+        } catch (_) {
+          // pass
+        }
+      }
+      for (let i = 0; i < youtubeNodes.length; i++) {
+        const node = youtubeNodes.at(i)!;
+        try {
+          const srcName = await node.$eval('.R8BTeb', e => e.textContent);
+          const url = await node.$eval('.KEVENd', e => e.getAttribute('href'));
+          const title = await node.$eval('.W6DUrc', e => e.textContent);
+          const content = await node.$eval('.gxZfx', e => e.textContent);
+          if (srcName && url && title && content) {
+            searchRet.push({ srcName, url, title, content, rank: -1 });
+          }
+        } catch (_) {
+          // pass
+        }
+      }
+
+      logger.info('Google crawling result', searchRet);
+
+      const prompt = `Your task is to rank the content of the json data. You will be given a goal, a json format data extracted from google search, and a query string used for searching google.
+The format of json data is {"srcName: "[string type]", "url": "[string type]", "title": "[string type]", "content": "[string type]", "rank": "[number type]"}, and you have to return list of rank of each data.
+The format of return data is [{"importance": "[number type]"}].
+The rank should be between 0 to 3, and higher means more reliable and adequate source of data which have more feasible information for the query.
+Respond in json format. goal: ${goal}, query: ${input.query}, data: ${JSON.stringify(searchRet)}'`;
+
+      try {
+        const output = await this.searcher.execute(prompt);
+
+        logger.info('Extractor output', output);
+
+        const msg2 = t('act_searchGoogle_ok', [input.query, output]);
+        context.emitEvent(Actors.NAVIGATOR, ExecutionState.ACT_OK, msg2);
+        return new ActionResult({
+          extractedContent: msg2,
+          includeInMemory: true,
+        });
+      } catch (error) {
+        logger.error(`Error extracting content: ${error instanceof Error ? error.message : String(error)}`);
+        const msg =
+          'Failed to extract content from page, you need to extract content from the current state of the page and store it in the memory. Then scroll down if you still need more information.';
+        context.emitEvent(Actors.NAVIGATOR, ExecutionState.ACT_FAIL, msg);
+        return new ActionResult({
+          extractedContent: msg,
+          includeInMemory: true,
+        });
+      }
     }, searchGoogleActionSchema);
     actions.push(searchGoogle);
 
