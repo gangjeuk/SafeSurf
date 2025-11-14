@@ -14,7 +14,7 @@ import { lo } from '@electric-sql/pglite/contrib/lo';
 import { vector } from '@electric-sql/pglite/vector';
 import { drizzle } from 'drizzle-orm/pglite';
 
-export type * from './types.js';
+// export type * from './types.js';
 
 // worker({
 //   async init() {

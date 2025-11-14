@@ -559,14 +559,11 @@
     }
   },
   "act_searchGoogle_ok": {
-    "message": "Searched for \"$QUERY$\" in Google. $RET$",
+    "message": "Searched for \"$QUERY$\" in Google.",
     "placeholders": {
       "query": {
         "content": "$1",
         "example": "weather today"
-      },
-      "text": {
-        "content": "$2"
       }
     }
   },
