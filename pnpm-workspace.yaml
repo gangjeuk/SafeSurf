@@ -11,4 +11,4 @@ onlyBuiltDependencies:
   - geckodriver
   - unrs-resolver
 patchedDependencies:
-  '@electric-sql/pglite@0.3.14': patches/@electric-sql__pglite@0.3.14.patch
+  '@electric-sql/pglite': patches/@electric-sql__pglite.patch
