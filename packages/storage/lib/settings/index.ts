@@ -5,3 +5,4 @@ export * from './generalSettings.js';
 export * from './firewall.js';
 export * from './speechToText.js';
 export * from './analyticsSettings.js';
+export type * from './dbSettings.js';
