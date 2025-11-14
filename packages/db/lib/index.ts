@@ -8,6 +8,7 @@ import {
   fields,
   embeddings,
 } from './schema/item.js';
+import PGliteVectorStore from './vectorstore.js';
 import { PGlite, IdbFs } from '@electric-sql/pglite';
 // import { worker } from '@electric-sql/pglite/worker';
 import { lo } from '@electric-sql/pglite/contrib/lo';
@@ -36,4 +37,4 @@ const db = drizzle({
   schema: { item_annotations, item_attachments, item_data, item_data_values, item_notes, items, fields, embeddings },
 });
 
-export { db, pg };
+export { db, pg, PGliteVectorStore };
