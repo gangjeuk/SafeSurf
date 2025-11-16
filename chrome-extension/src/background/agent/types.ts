@@ -8,11 +8,28 @@ import type { Actors, ExecutionState } from './event/types';
 import type MessageManager from './messages/service';
 import type { DOMHistoryElement } from '../browser/dom/history/view';
 
+export class ActionResult {
+  isDone: boolean;
+  success: boolean;
+  extractedContent: string | null;
+  error: string | null;
+  includeInMemory: boolean;
+  interactedElement: DOMHistoryElement | null;
+
+  constructor(params: Partial<ActionResult> = {}) {
+    this.isDone = params.isDone ?? false;
+    this.success = params.success ?? false;
+    this.interactedElement = params.interactedElement ?? null;
+    this.extractedContent = params.extractedContent ?? null;
+    this.error = params.error ?? null;
+    this.includeInMemory = params.includeInMemory ?? false;
+  }
+}
 export const agentContextSchema = z.object({
   taskId: z.string(),
   eventContext: z.instanceof(EventManager),
   browserContext: z.instanceof(BrowserContext),
-  options: z.object<AgentOptions>(),
+  // options: z.object<AgentOptions>(),
   maxSteps: z.number().default(100),
   useVision: z.boolean().default(false),
   maxFailures: z.number().default(3),
@@ -129,24 +146,6 @@ export class AgentStepInfo {
   constructor(params: { stepNumber: number; maxSteps: number }) {
     this.stepNumber = params.stepNumber;
     this.maxSteps = params.maxSteps;
-  }
-}
-
-export class ActionResult {
-  isDone: boolean;
-  success: boolean;
-  extractedContent: string | null;
-  error: string | null;
-  includeInMemory: boolean;
-  interactedElement: DOMHistoryElement | null;
-
-  constructor(params: Partial<ActionResult> = {}) {
-    this.isDone = params.isDone ?? false;
-    this.success = params.success ?? false;
-    this.interactedElement = params.interactedElement ?? null;
-    this.extractedContent = params.extractedContent ?? null;
-    this.error = params.error ?? null;
-    this.includeInMemory = params.includeInMemory ?? false;
   }
 }
 
