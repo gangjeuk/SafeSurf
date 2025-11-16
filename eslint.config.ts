@@ -31,6 +31,7 @@ export default [
       '**/node_modules/**',
       'chrome-extension/manifest.js',
       'chrome-extension/manifest.ts',
+      'chrome-extension/async_hook.ts',
       'chrome-extension/public/buildDomTree.js',
       'chrome-extension/public/permission/permission.js',
     ],

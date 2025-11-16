@@ -20,6 +20,13 @@ export default defineConfig({
       '@root': rootDir,
       '@src': srcDir,
       '@assets': resolve(srcDir, 'assets'),
+      /**
+       * Added polyfills of AsyncLocalStorage to use langgraph on the web environment.
+       * It's not currently supported.
+       * See @link https://github.com/langchain-ai/langgraphjs/issues/1699
+       */
+      async_hooks: resolve(rootDir, 'async_hook.ts'),
+      'node:async_hooks': resolve(rootDir, 'async_hook.ts'),
     },
   },
   plugins: [

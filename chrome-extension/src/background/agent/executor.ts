@@ -20,6 +20,7 @@ import { URLNotAllowedError } from '../browser/views';
 import { analytics } from '../services/analytics';
 import { t } from '@extension/i18n';
 import { chatHistoryStore } from '@extension/storage/lib/chat';
+import { Annotation } from '@langchain/langgraph/web';
 import { createLogger } from '@src/background/log';
 import type { PlannerOutput } from './agents/planner';
 import type BrowserContext from '../browser/context';
@@ -37,6 +38,20 @@ export interface ExecutorExtraArgs {
   agentOptions?: Partial<AgentOptions>;
   generalSettings?: GeneralSettingsConfig;
 }
+const _PlanExecuteState = Annotation.Root({
+  input: Annotation<string>({
+    reducer: (x, y) => y ?? x ?? '',
+  }),
+  plan: Annotation<string[]>({
+    reducer: (x, y) => y ?? x ?? [],
+  }),
+  pastSteps: Annotation<[string, string][]>({
+    reducer: (x, y) => x.concat(y),
+  }),
+  response: Annotation<string>({
+    reducer: (x, y) => y ?? x,
+  }),
+});
 
 export class Executor {
   private readonly navigator: NavigatorAgent;
