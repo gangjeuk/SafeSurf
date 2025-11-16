@@ -126,7 +126,6 @@ const manifest = withOperaSidebar(
         css: ['content.css'],
       },
     ],
-    devtools_page: 'devtools/index.html',
     web_accessible_resources: [
       {
         resources: [
