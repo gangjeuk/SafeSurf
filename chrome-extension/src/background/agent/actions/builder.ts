@@ -143,6 +143,9 @@ export function buildDynamicActionSchema(actions: Action[]): z.ZodType {
   return schema;
 }
 
+/**
+ * @deprecated
+ */
 export class ActionBuilder {
   private readonly context: AgentContext;
   private readonly searcher: SearcherAgent;

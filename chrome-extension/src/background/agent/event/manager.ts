@@ -1,5 +1,8 @@
+import { AgentEvent } from './types';
 import { createLogger } from '../../log';
-import type { AgentEvent, EventType, EventCallback } from './types';
+import type { EventType, EventCallback, ExecutionState, Actors } from './types';
+import type { agentContextSchema, agentStateSchema } from '../types';
+import type { z } from 'zod';
 
 const logger = createLogger('event-manager');
 
@@ -37,6 +40,23 @@ export class EventManager {
     if (this._subscribers.has(eventType)) {
       this._subscribers.set(eventType, []);
     }
+  }
+
+  async emitAgentEvent(
+    actor: Actors,
+    executionState: ExecutionState,
+    details: string,
+    context: z.infer<typeof agentContextSchema>,
+    state: z.infer<typeof agentStateSchema>,
+  ) {
+    const event = new AgentEvent(actor, executionState, {
+      taskId: context.taskId,
+      step: state.nSteps,
+      maxSteps: context.maxSteps,
+      details: details,
+    });
+
+    this.emit(event);
   }
 
   async emit(event: AgentEvent): Promise<void> {

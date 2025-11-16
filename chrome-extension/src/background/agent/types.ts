@@ -1,13 +1,35 @@
+import { EventManager } from './event/manager';
 import { AgentEvent } from './event/types';
 import { AgentStepHistory } from './history';
+import BrowserContext from '../browser/context';
 import { DEFAULT_INCLUDE_ATTRIBUTES } from '../browser/dom/views';
 import { z } from 'zod';
-import type BrowserContext from '../browser/context';
-import type { EventManager } from './event/manager';
 import type { Actors, ExecutionState } from './event/types';
 import type MessageManager from './messages/service';
 import type { DOMHistoryElement } from '../browser/dom/history/view';
 
+export const agentContextSchema = z.object({
+  taskId: z.string(),
+  eventContext: z.instanceof(EventManager),
+  browserContext: z.instanceof(BrowserContext),
+  options: z.object<AgentOptions>(),
+  maxSteps: z.number().default(100),
+  useVision: z.boolean().default(false),
+  maxFailures: z.number().default(3),
+  retryDelay: z.number().default(10),
+  maxInputTokens: z.number().default(128000),
+});
+
+export const agentStateSchema = z.object({
+  paused: z.boolean().default(false),
+  stopped: z.boolean().default(false),
+  consecutiveFailCount: z.number().default(0),
+  nSteps: z.number().default(0),
+  finalAnswer: z.string().nullable(),
+  results: z.array(z.instanceof(ActionResult)),
+});
+
+export const agentStoreSchema = z.object({});
 export interface AgentOptions {
   maxSteps: number;
   maxActionsPerStep: number;
