@@ -23,7 +23,7 @@ const translate = (key: keyof LocalesJSONType, substitutions?: string | string[]
   if (!substitutions) {
     return message;
   } else if (Array.isArray(substitutions)) {
-    return substitutions.reduce((acc, cur, idx) => acc.replace(`$${idx++}`, cur), message);
+    return substitutions.reduce((acc, cur, idx) => acc.replace(`$${idx + 1}`, cur), message);
   }
 
   return message.replace(/\$(\d+)/, substitutions);
