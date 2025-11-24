@@ -1,4 +1,3 @@
-import { ActionBuilder } from './actions/builder';
 import {
   ChatModelAuthError,
   ChatModelBadRequestError,
@@ -8,27 +7,35 @@ import {
   MaxStepsReachedError,
   MaxFailuresReachedError,
 } from './agents/errors';
-import { NavigatorAgent, NavigatorActionRegistry } from './agents/navigator';
-import { PlannerAgent } from './agents/planner';
+import { agentStateSchema, createNaviageAgent } from './agents/navigator';
+import { createPlannerAgent, createReplannerAgent } from './agents/planner';
+import { createSearcherAgent } from './agents/searcher';
 import { EventManager } from './event/manager';
 import { Actors, EventType, ExecutionState } from './event/types';
 import MessageManager from './messages/service';
 import { NavigatorPrompt } from './prompts/navigator';
-import { PlannerPrompt } from './prompts/planner';
+import { plannerPrompt, replannerPrompt } from './prompts/planner';
+import { createRanker } from './runner/ranker';
+import { createSummarizer } from './runner/summarizer';
 import { AgentContext } from './types';
 import { URLNotAllowedError } from '../browser/views';
 import { analytics } from '../services/analytics';
 import { t } from '@extension/i18n';
 import { chatHistoryStore } from '@extension/storage/lib/chat';
-import { Annotation } from '@langchain/langgraph/web';
+import { StateGraph, START, END } from '@langchain/langgraph/web';
+import { registry } from '@langchain/langgraph/zod';
 import { createLogger } from '@src/background/log';
+import { HumanMessage, SystemMessage } from 'langchain';
+import { z } from 'zod';
 import type { PlannerOutput } from './agents/planner';
-import type BrowserContext from '../browser/context';
 import type { EventCallback } from './event/types';
 import type { AgentStepHistory } from './history';
+import type BrowserContext from '../browser/context';
+import type { BaseSearchResponse } from './tools/search/google';
 import type { ActionResult, AgentOptions, AgentOutput } from './types';
 import type { GeneralSettingsConfig } from '@extension/storage';
 import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
+import type { Runtime } from 'langchain';
 
 const logger = createLogger('Executor');
 
@@ -38,26 +45,22 @@ export interface ExecutorExtraArgs {
   agentOptions?: Partial<AgentOptions>;
   generalSettings?: GeneralSettingsConfig;
 }
-const _PlanExecuteState = Annotation.Root({
-  input: Annotation<string>({
-    reducer: (x, y) => y ?? x ?? '',
-  }),
-  plan: Annotation<string[]>({
-    reducer: (x, y) => y ?? x ?? [],
-  }),
-  pastSteps: Annotation<[string, string][]>({
-    reducer: (x, y) => x.concat(y),
-  }),
-  response: Annotation<string>({
-    reducer: (x, y) => y ?? x,
-  }),
-});
+
+export function getExecutor() {}
 
 export class Executor {
-  private readonly navigator: NavigatorAgent;
-  private readonly planner: PlannerAgent;
-  private readonly context: AgentContext;
-  private readonly plannerPrompt: PlannerPrompt;
+  // private readonly navigator: NavigatorAgent;
+  // private readonly planner: PlannerAgent;
+  public readonly naviagtorAgent: ReturnType<typeof createNaviageAgent>; // ReactAgent
+  public readonly plannerAgent: ReturnType<typeof createPlannerAgent>;
+  public readonly replannerAgent: ReturnType<typeof createReplannerAgent>;
+  public readonly searcher: ReturnType<typeof createSearcherAgent>;
+  public readonly ranker: ReturnType<typeof createRanker>;
+  public readonly summarizer: ReturnType<typeof createSummarizer>;
+  public readonly context: AgentContext;
+  public readonly app: ReturnType<typeof compileGraph>; // CompiledStateGraph
+  public readonly plannerPrompt = plannerPrompt;
+  public readonly replannerPrompt = replannerPrompt;
   private readonly navigatorPrompt: NavigatorPrompt;
   private readonly generalSettings: GeneralSettingsConfig | undefined;
   private tasks: string[] = [];
@@ -71,7 +74,7 @@ export class Executor {
     const messageManager = new MessageManager();
 
     const plannerLLM = extraArgs?.plannerLLM ?? navigatorLLM;
-    const extractorLLM = extraArgs?.extractorLLM ?? navigatorLLM;
+    // const extractorLLM = extraArgs?.extractorLLM ?? navigatorLLM;
     const eventManager = new EventManager();
     const context = new AgentContext(
       taskId,
@@ -84,25 +87,32 @@ export class Executor {
     this.generalSettings = extraArgs?.generalSettings;
     this.tasks.push(task);
     this.navigatorPrompt = new NavigatorPrompt(context.options.maxActionsPerStep);
-    this.plannerPrompt = new PlannerPrompt();
 
-    const actionBuilder = new ActionBuilder(context, extractorLLM);
-    const navigatorActionRegistry = new NavigatorActionRegistry(actionBuilder.buildDefaultActions());
+    // const actionBuilder = new ActionBuilder(context, extractorLLM);
+    // const navigatorActionRegistry = new NavigatorActionRegistry(actionBuilder.buildDefaultActions());
 
-    // Initialize agents with their respective prompts
-    this.navigator = new NavigatorAgent(navigatorActionRegistry, {
-      chatLLM: navigatorLLM,
-      context: context,
-      prompt: this.navigatorPrompt,
-    });
+    // // Initialize agents with their respective prompts
+    // this.navigator = new NavigatorAgent(navigatorActionRegistry, {
+    //   chatLLM: navigatorLLM,
+    //   context: context,
+    //   prompt: this.navigatorPrompt,
+    // });
 
-    this.planner = new PlannerAgent({
-      chatLLM: plannerLLM,
-      context: context,
-      prompt: this.plannerPrompt,
-    });
+    // this.planner = new PlannerAgent({
+    //   chatLLM: plannerLLM,
+    //   context: context,
+    //   prompt: this.plannerPrompt,
+    // });
+
+    this.naviagtorAgent = createNaviageAgent(navigatorLLM);
+    this.plannerAgent = createPlannerAgent(plannerLLM);
+    this.replannerAgent = createReplannerAgent(plannerLLM);
+    this.searcher = createSearcherAgent(plannerLLM);
+    this.ranker = createRanker(navigatorLLM);
+    this.summarizer = createSummarizer(plannerLLM);
 
     this.context = context;
+    this.app = compileGraph();
     // Initialize message history
     this.context.messageManager.initTaskMessages(this.navigatorPrompt.getSystemMessage(), task);
   }
@@ -160,6 +170,8 @@ export class Executor {
       let latestPlanOutput: AgentOutput<PlannerOutput> | null = null;
       let navigatorDone = false;
 
+      this.app.invoke({ input: this.tasks[0] }, { context: { executor: this } });
+      return;
       for (step = 0; step < allowedMaxSteps; step++) {
         context.stepInfo = {
           stepNumber: context.nSteps,
@@ -249,6 +261,7 @@ export class Executor {
 
   /**
    * Helper method to run planner and store its output
+   * @deprecated
    */
   private async runPlanner(): Promise<AgentOutput<PlannerOutput> | null> {
     const context = this.context;
@@ -289,69 +302,6 @@ export class Executor {
     }
   }
 
-  private async navigate(): Promise<boolean> {
-    const context = this.context;
-    try {
-      // Get and execute navigation action
-      // check if the task is paused or stopped
-      if (context.paused || context.stopped) {
-        return false;
-      }
-      const navOutput = await this.navigator.execute();
-      // check if the task is paused or stopped
-      if (context.paused || context.stopped) {
-        return false;
-      }
-      context.nSteps++;
-      if (navOutput.error) {
-        throw new Error(navOutput.error);
-      }
-      context.consecutiveFailures = 0;
-      if (navOutput.result?.done) {
-        return true;
-      }
-    } catch (error) {
-      logger.error(`Failed to execute step: ${error}`);
-      if (
-        error instanceof ChatModelAuthError ||
-        error instanceof ChatModelBadRequestError ||
-        error instanceof ChatModelForbiddenError ||
-        error instanceof URLNotAllowedError ||
-        error instanceof RequestCancelledError ||
-        error instanceof ExtensionConflictError
-      ) {
-        throw error;
-      }
-      context.consecutiveFailures++;
-      logger.error(`Failed to execute step: ${error}`);
-      if (context.consecutiveFailures >= context.options.maxFailures) {
-        throw new MaxFailuresReachedError(t('exec_errors_maxFailuresReached'));
-      }
-    }
-    return false;
-  }
-
-  private async shouldStop(): Promise<boolean> {
-    if (this.context.stopped) {
-      logger.info('Agent stopped');
-      return true;
-    }
-
-    while (this.context.paused) {
-      await new Promise(resolve => setTimeout(resolve, 200));
-      if (this.context.stopped) {
-        return true;
-      }
-    }
-
-    if (this.context.consecutiveFailures >= this.context.options.maxFailures) {
-      logger.error(`Stopping due to ${this.context.options.maxFailures} consecutive failures`);
-      return true;
-    }
-
-    return false;
-  }
-
   async cancel(): Promise<void> {
     this.context.stop();
   }
@@ -384,6 +334,7 @@ export class Executor {
    * @param skipFailures - Whether to skip failed actions or stop execution
    * @param delayBetweenActions - Delay between actions in seconds
    * @returns List of action results
+   * @deprecated
    */
   async replayHistory(
     sessionId: string,
@@ -449,4 +400,179 @@ export class Executor {
 
     return results;
   }
+}
+
+// =============== BEGIN graph state, context ==================
+const ExecutorState = z.object({
+  input: z.string().register(registry, {
+    reducer: {
+      fn: (x, y) => y ?? x ?? '',
+    },
+  }),
+  plan: z.array(z.string()).register(registry, {
+    reducer: {
+      fn: (x, y) => y ?? x ?? [],
+    },
+  }),
+  pastSteps: z.array(z.tuple([z.string(), z.string()])).register(registry, {
+    reducer: {
+      fn: (x, y) => x.concat(y),
+    },
+  }),
+  response: z.string().register(registry, {
+    reducer: {
+      fn: (x, y) => y ?? x,
+    },
+  }),
+});
+
+const ExecutorContext = z.object({
+  executor: z.instanceof(Executor),
+  agentState: agentStateSchema,
+});
+
+// =============== END graph state, context ==================
+
+// =============== BEGIN graph Node ==================
+
+async function executeStep(
+  state: z.infer<typeof ExecutorState>,
+  runtime: Runtime<z.infer<typeof ExecutorContext> | undefined>,
+) {
+  if (runtime?.context === undefined) {
+    throw new Error('Executor context not initialized');
+  }
+  const task = state.plan[0];
+  const context = runtime.context.executor.context;
+  logger.info(state);
+
+  const { messages } = await runtime.context.executor.naviagtorAgent.invoke(
+    {
+      messages: [new HumanMessage(task)],
+      ...runtime.context.agentState,
+    },
+    {
+      // ...runtime,
+      context: {
+        taskId: context.taskId,
+        eventContext: context.eventManager,
+        browserContext: context.browserContext,
+      },
+    },
+  );
+
+  for (const msg of messages) {
+    // When ToolMessage made by GoogleSearch tool
+    logger.info(msg);
+    if (msg.name === 'google_search') {
+      const content: BaseSearchResponse = JSON.parse(msg.content as string);
+      const ranker = runtime.context.executor.ranker;
+
+      const rank = await ranker.invoke({
+        messages: [
+          new SystemMessage(`For the given objective, rank the importance of information. 
+Your objective was this:
+${state.input}
+
+Query string used for google search is this:
+${content.query}
+
+Your original plan was this:
+${state.plan[0]}
+
+You have currently done the follow steps:
+${messages[messages.length - 1].content.toString()}
+
+Return top 4 results from the input data, and score the importance of each result from 0 to 10. Higher means more important`),
+          new HumanMessage([{ type: 'text', text: JSON.stringify(content.results) }]),
+        ],
+      });
+
+      logger.info(rank);
+
+      for (const res of rank.structuredResponse) {
+        const _tmp = content.results.at(res.index);
+        if (_tmp !== undefined) {
+          _tmp.score = res.score;
+          _tmp.raw_content = await (await fetch(_tmp.url)).text();
+        }
+      }
+    }
+  }
+
+  logger.info(messages);
+  return {
+    pastSteps: [[task, messages[messages.length - 1].content.toString()]],
+    plan: state.plan.slice(1),
+  };
+}
+
+async function planStep(
+  state: z.infer<typeof ExecutorState>,
+  runtime: Runtime<z.infer<typeof ExecutorContext> | undefined>,
+) {
+  if (runtime?.context === undefined) {
+    throw new Error('Executor context not initialized');
+  }
+  const executor = runtime.context.executor;
+
+  const prompt = await executor.plannerPrompt.format({ objective: state.input });
+  const plan = await executor.plannerAgent.invoke({
+    messages: [{ role: 'system', content: prompt }],
+    ...runtime.context.agentState,
+  });
+  logger.info(plan);
+
+  return { plan: [plan.structuredResponse.steps] };
+}
+
+async function replanStep(
+  state: z.infer<typeof ExecutorState>,
+  runtime: Runtime<z.infer<typeof ExecutorContext> | undefined>,
+) {
+  if (runtime?.context === undefined) {
+    throw new Error('Executor context not initialized');
+  }
+
+  const executor = runtime.context.executor;
+  const prompt = await executor.replannerPrompt.format({
+    input: state.input,
+    plan: state.plan.join('\n'),
+    pastSteps: state.pastSteps.map(([step, result]) => `${step}: ${result}`).join('\n'),
+  });
+  const output = await runtime.context.executor.replannerAgent.invoke({
+    messages: [{ role: 'system', content: prompt }],
+    ...runtime.context.agentState,
+  });
+  const toolCall = output;
+  logger.info(output);
+
+  if (toolCall.structuredResponse.done) {
+    return { response: toolCall.structuredResponse.final_answer };
+  }
+
+  return { plan: [toolCall.structuredResponse.next_steps] };
+}
+
+function shouldEnd(state: z.infer<typeof ExecutorState>) {
+  return state.response ? 'true' : 'false';
+}
+
+// =============== END graph Node ==================
+
+function compileGraph() {
+  const workflow = new StateGraph(ExecutorState, { context: ExecutorContext })
+    .addNode('planner', planStep)
+    .addNode('agent', executeStep)
+    .addNode('replan', replanStep)
+    .addEdge(START, 'planner')
+    .addEdge('planner', 'agent')
+    .addEdge('agent', 'replan')
+    .addConditionalEdges('replan', shouldEnd, {
+      true: END,
+      false: 'agent',
+    });
+
+  const app = workflow.compile();
+  return app;
 }
