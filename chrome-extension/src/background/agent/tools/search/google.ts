@@ -1,13 +1,12 @@
 import { StructuredTool } from '@langchain/core/tools';
+import * as cheerio from 'cheerio';
 import { z } from 'zod';
 import type { CallbackManagerForToolRun } from '@langchain/core/callbacks/manager';
 import type { ToolParams } from '@langchain/core/tools';
 import type { InferInteropZodOutput } from '@langchain/core/utils/types';
-import type { URI } from 'vscode-uri';
 
 export type SearchDepth = 'basic' | 'advanced';
 export type TopicType = 'general' | 'news' | 'finance';
-
 /**
  * A single search result from the Google Search API.
  */
@@ -19,7 +18,7 @@ export type SearchResult = {
   /**
    * The URL of the search result.
    */
-  url: URI;
+  url: string;
   /**
    * A short description of the search result.
    */
@@ -164,7 +163,7 @@ export type SearchAPIRetrieverFields = ToolParams & {
   topic?: TopicType;
 };
 
-function generateSuggestions(params: Record<string, unknown>): string[] {
+function _generateSuggestions(params: Record<string, unknown>): string[] {
   const suggestions: string[] = [];
 
   const { includeKeywords, excludeKeywords, searchDepth } = params;
@@ -242,7 +241,7 @@ rare information, or when in-depth analysis is needed.`,
  * console.log(results);
  * ```
  */
-export class GoogleSearch extends StructuredTool<typeof inputSchema> {
+export class GoogleSearch extends StructuredTool<typeof inputSchema, BaseSearchResponse> {
   static lc_name(): string {
     return 'GoogleSearch';
   }
@@ -256,7 +255,7 @@ export class GoogleSearch extends StructuredTool<typeof inputSchema> {
 
   override schema = inputSchema;
 
-  apiBaseUrl?: string;
+  apiBaseUrl = 'https://google.com/search';
 
   maxResults?: number;
 
@@ -304,47 +303,55 @@ export class GoogleSearch extends StructuredTool<typeof inputSchema> {
     _runManager?: CallbackManagerForToolRun,
   ): Promise<BaseSearchResponse | { error: string }> {
     try {
-      const { query, includeKeywords, excludeKeywords, searchDepth } = input;
+      const { query, includeKeywords, excludeKeywords } = input;
 
-      // Class instance values take precedence over call parameters
-      const effectiveIncludeDomains = this.includeKeywords ?? includeKeywords;
-      const effectiveExcludeDomains = this.excludeKeywords ?? excludeKeywords;
-      const effectiveSearchDepth = this.searchDepth ?? searchDepth;
+      const includeKeyword = includeKeywords?.map(k => `"${k}"`).join(' ') ?? '';
+      const excludeKeyword = excludeKeywords?.map(k => `-${k}`).join(' ') ?? '';
 
-      const rawResults = await this.apiWrapper.rawResults({
-        query,
-        includeDomains: effectiveIncludeDomains,
-        excludeDomains: effectiveExcludeDomains,
-        searchDepth: effectiveSearchDepth,
-        maxResults: this.maxResults,
-        includeAnswer: this.includeAnswer,
-        includeRawContent: this.includeRawContent,
-        chunksPerSource: this.chunksPerSource,
-      });
+      const structedQuery = `${query} ${includeKeyword} ${excludeKeyword}`;
+      console.log(structedQuery);
+      const html = await (await fetch(`${this.apiBaseUrl}?q=${structedQuery}`)).text();
+      console.log(structedQuery, html);
 
-      if (
-        !rawResults ||
-        typeof rawResults !== 'object' ||
-        !('results' in rawResults) ||
-        !Array.isArray(rawResults.results) ||
-        rawResults.results.length === 0
-      ) {
-        const searchParams = {
-          includeDomains: effectiveIncludeDomains,
-          excludeDomains: effectiveExcludeDomains,
-          searchDepth: effectiveSearchDepth,
-        };
-        const suggestions = generateSuggestions(searchParams);
+      const page = cheerio.load(html);
 
-        const errorMessage =
-          `No search results found for '${query}'. ` +
-          `Suggestions: ${suggestions.join(', ')}. ` +
-          `Try modifying your search parameters with one of these approaches.`;
+      const urlNodes = page('.A6K0A');
+      const youtubeNodes = page('.LLtSOc');
+      const searchRet: SearchResult[] = [];
+      for (let i = 0; i < urlNodes.length; i++) {
+        const node = cheerio.load(urlNodes[i]);
+        try {
+          const srcName = node('.VuuXrf').text();
 
-        throw new Error(errorMessage);
+          const url = node('.zReHs').attr('href');
+
+          const title = node('.LC20lb').text();
+          const content = node('.VwiC3b').text().replaceAll('...', '.');
+
+          if (srcName && url && title && content) {
+            searchRet.push({ srcName, url, title, content, score: -1, raw_content: null });
+          }
+        } catch (_) {
+          // pass
+        }
       }
 
-      return rawResults;
+      for (let i = 0; i < youtubeNodes.length; i++) {
+        const node = cheerio.load(youtubeNodes[i]);
+        try {
+          const srcName = node('.R8BTeb').text();
+          const url = node('.KEVENd').attr('href');
+          const title = node('.R8W6DUrcBTeb').text();
+          const content = node('.gxZfx').text().replaceAll('...', '.');
+          if (srcName && url && title && content) {
+            searchRet.push({ srcName, url, title, content, score: -1, raw_content: null });
+          }
+        } catch (_) {
+          // pass
+        }
+      }
+
+      return { query: structedQuery, results: searchRet, response_time: 0 };
     } catch (e: unknown) {
       const errorMessage = e && typeof e === 'object' && 'message' in e ? e.message : String(e);
       return { error: errorMessage as string };

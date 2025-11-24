@@ -108,6 +108,12 @@ const manifest = withOperaSidebar(
       {
         matches: ['http://*/*', 'https://*/*', '<all_urls>'],
         js: ['content/all.iife.js'],
+        run_at: 'document_start',
+      },
+      {
+        world: 'MAIN',
+        matches: ['http://*/*', 'https://*/*', '<all_urls>'],
+        js: ['content/world.iife.js'],
       },
       // {
       //   matches: ['https://example.com/*'],

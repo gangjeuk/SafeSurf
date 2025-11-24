@@ -13,62 +13,42 @@ import {
 import { Actors, ExecutionState } from '../event/types';
 import { HumanMessage } from '@langchain/core/messages';
 import { createLogger } from '@src/background/log';
+import { createAgent } from 'langchain';
 import { z } from 'zod';
 import type { BaseAgentOptions, ExtraAgentOptions } from './base';
 import type { AgentOutput } from '../types';
+import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
+import type { ReactAgent } from 'langchain';
 
 const logger = createLogger('SearcherAgent');
+// Define Zod schema for searchear output
+export const searcherOutputSchema = z.object({
+  query: z.string(),
+  answer: z.string().nullable(),
+  results: z.array(
+    z.object({
+      title: z.string(),
+      url: z.url(),
+      content: z.string(),
+      publisher: z.string(),
+      score: z.number(),
+    }),
+  ),
+});
 
-enum InfoImportance {
-  NOT_IMPORTANT = 0,
-  IMPORTANT = 1,
-  VERY_IMPORTANT = 2, // you can mix numerical and string enums
-  CRITICAL = 3,
+let searcher: ReactAgent<z.infer<typeof searcherOutputSchema>> | null = null;
+export function createSearcherAgent(model: BaseChatModel) {
+  if (searcher) {
+    return searcher;
+  }
+
+  searcher = createAgent({
+    model: model,
+    responseFormat: searcherOutputSchema,
+  });
+
+  return searcher;
 }
-
-// const urlData = z.object({
-//   title: z.string(),
-//   url: z.string().url(),
-//   // HTML meta tag. <meta name=description />
-//   description: z.string(),
-//   importance: z.nativeEnum(InfoImportance).transform(val => {
-//     if (val.toString() === '0') return 0;
-//     if (val.toString() === '1') return 1;
-//     if (val.toString() === '2') return 2;
-//     throw new Error('Invalid information importance');
-//   }),
-// });
-
-// const youtubeData = z.object({
-//   title: z.string(),
-//   url: z.string().url(),
-//   channel: z.string(),
-//   importance: z.nativeEnum(InfoImportance).transform(val => {
-//     if (val.toString() === '0') return 0;
-//     if (val.toString() === '1') return 1;
-//     if (val.toString() === '2') return 2;
-//     throw new Error('Invalid information importance');
-//   }),
-// });
-
-const dataImportance = z.object({
-  importance: z.nativeEnum(InfoImportance).transform(val => {
-    console.log(val);
-    if (val.toString() === '0') return 0;
-    if (val.toString() === '1') return 1;
-    if (val.toString() === '2') return 2;
-    if (val.toString() === '3') return 3;
-    throw new Error('Invalid information importance');
-  }),
-});
-
-const pageSummarizeData = z.object({
-  summarize: z.string(),
-  keySentence: z.array(z.string()),
-});
-
-// Define Zod schema for planner output
-export const searcherOutputSchema = z.union([z.array(dataImportance), pageSummarizeData]);
 
 export type SearcherOutput = z.infer<typeof searcherOutputSchema>;
 

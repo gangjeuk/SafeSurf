@@ -6,7 +6,7 @@ import { t } from '@extension/i18n';
 import { createLogger } from '@src/background/log';
 import { tool } from 'langchain';
 import { z } from 'zod';
-import type { agentContextSchema, agentStateSchema } from '../../types';
+import type { agentContextSchema, agentStateSchema } from '../../agents/navigator';
 import type { ToolRuntime } from 'langchain';
 
 const logger = createLogger('Actions');
@@ -49,6 +49,8 @@ export const doneTool = tool(
 export const searchGoogleTool = tool(
   async (input, options: ToolRuntime<typeof agentStateSchema, typeof agentContextSchema>) => {
     // TODO: This tool needs access to an LLM to rank search results.
+    logger.info(input, options);
+
     // The current architecture does not provide an LLM to tools.
     // This is a placeholder implementation.
     const intent = input.intent || t('act_searchGoogle_start', [input.query]);
@@ -59,8 +61,6 @@ export const searchGoogleTool = tool(
       options.context,
       options.state,
     );
-
-    await options.context.browserContext.navigateTo(`https://www.google.com/search?q=${input.query}`);
 
     const msg = t('act_searchGoogle_ok', [input.query, '']);
     options.context.eventContext.emitAgentEvent(
@@ -77,7 +77,7 @@ export const searchGoogleTool = tool(
     description:
       'Search the query in Google in the current tab, the query should be a search query like humans search in Google, concrete and not vague or super long. More the single most important items.',
     schema: z.object({
-      intent: z.string().default('').describe('purpose of this action'),
+      intent: z.string().describe('purpose of this action'),
       query: z.string(),
       goal: z.string(),
     }),
@@ -108,13 +108,14 @@ export const goToUrlTool = tool(
     );
 
     options.state.results.push(new ActionResult({ extractedContent: msg2, includeInMemory: true }));
+    return msg2;
   },
 
   {
     name: 'go_to_url',
     description: 'Navigate to URL in the current tab',
     schema: z.object({
-      intent: z.string().default('').describe('purpose of this action'),
+      intent: z.string().describe('purpose of this action'),
       url: z.string(),
     }),
   },
@@ -142,12 +143,13 @@ export const goBackTool = tool(
       options.state,
     );
     options.state.results.push(new ActionResult({ extractedContent: msg2, includeInMemory: true }));
+    return msg2;
   },
   {
     name: 'go_back',
     description: 'Go back to the previous page',
     schema: z.object({
-      intent: z.string().default('').describe('purpose of this action'),
+      intent: z.string().describe('purpose of this action'),
     }),
   },
 );
@@ -167,6 +169,7 @@ export const clickElementTool = tool(
     const state = await page.getState();
 
     const elementNode = state?.selectorMap.get(input.index);
+    logger.info('Element node', elementNode, state);
     if (!elementNode) {
       throw new Error(t('act_errors_elementNotExist', [input.index.toString()]));
     }
@@ -175,7 +178,7 @@ export const clickElementTool = tool(
       const msg = t('act_click_fileUploader', [input.index.toString()]);
       logger.info(msg);
       options.state.results.push(new ActionResult({ extractedContent: msg, includeInMemory: true }));
-      return;
+      return msg;
     }
 
     try {
@@ -203,6 +206,7 @@ export const clickElementTool = tool(
         options.state,
       );
       options.state.results.push(new ActionResult({ extractedContent: msg, includeInMemory: true }));
+      return msg;
     } catch (error) {
       const msg = t('act_errors_elementNoLongerAvailable', [input.index.toString()]);
       options.context.eventContext.emitAgentEvent(
@@ -217,13 +221,14 @@ export const clickElementTool = tool(
           error: error instanceof Error ? error.message : String(error),
         }),
       );
+      return error instanceof Error ? error.message : String(error);
     }
   },
   {
     name: 'click_element',
     description: 'Click element by index',
     schema: z.object({
-      intent: z.string().default('').describe('purpose of this action'),
+      intent: z.string().describe('purpose of this action'),
       index: z.number().int().describe('index of the element'),
       xpath: z.string().nullable().optional().describe('xpath of the element'),
     }),
@@ -259,12 +264,13 @@ export const inputTextTool = tool(
       options.state,
     );
     options.state.results.push(new ActionResult({ extractedContent: msg, includeInMemory: true }));
+    return msg;
   },
   {
     name: 'input_text',
     description: 'Input text into an interactive input element',
     schema: z.object({
-      intent: z.string().default('').describe('purpose of this action'),
+      intent: z.string().describe('purpose of this action'),
       index: z.number().int().describe('index of the element'),
       text: z.string().describe('text to input'),
       xpath: z.string().nullable().optional().describe('xpath of the element'),
@@ -294,12 +300,13 @@ export const switchTabTool = tool(
       options.state,
     );
     options.state.results.push(new ActionResult({ extractedContent: msg, includeInMemory: true }));
+    return msg;
   },
   {
     name: 'switch_tab',
     description: 'Switch to tab by tab id',
     schema: z.object({
-      intent: z.string().default('').describe('purpose of this action'),
+      intent: z.string().describe('purpose of this action'),
       tab_id: z.number().int().describe('id of the tab to switch to'),
     }),
   },
@@ -325,12 +332,13 @@ export const openTabTool = tool(
       options.state,
     );
     options.state.results.push(new ActionResult({ extractedContent: msg, includeInMemory: true }));
+    return msg;
   },
   {
     name: 'open_tab',
     description: 'Open URL in new tab',
     schema: z.object({
-      intent: z.string().default('').describe('purpose of this action'),
+      intent: z.string().describe('purpose of this action'),
       url: z.string().describe('url to open'),
     }),
   },
@@ -356,12 +364,13 @@ export const closeTabTool = tool(
       options.state,
     );
     options.state.results.push(new ActionResult({ extractedContent: msg, includeInMemory: true }));
+    return msg;
   },
   {
     name: 'close_tab',
     description: 'Close tab by tab id',
     schema: z.object({
-      intent: z.string().default('').describe('purpose of this action'),
+      intent: z.string().describe('purpose of this action'),
       tab_id: z.number().int().describe('id of the tab'),
     }),
   },
@@ -381,7 +390,7 @@ export const cacheContentTool = tool(
       options.state,
     );
 
-    const rawMsg = t('act_cache_ok', [input.content]);
+    const rawMsg = t('act_cache_ok', input.content);
     options.context.eventContext.emitAgentEvent(
       Actors.NAVIGATOR,
       ExecutionState.ACT_OK,
@@ -392,12 +401,13 @@ export const cacheContentTool = tool(
 
     const msg = wrapUntrustedContent(rawMsg);
     options.state.results.push(new ActionResult({ extractedContent: msg, includeInMemory: true }));
+    return rawMsg;
   },
   {
     name: 'cache_content',
     description: 'Cache what you have found so far from the current page for future use',
     schema: z.object({
-      intent: z.string().default('').describe('purpose of this action'),
+      intent: z.string().describe('purpose of this action'),
       content: z.string().default('').describe('content to cache'),
     }),
   },
@@ -428,7 +438,7 @@ export const scrollToPercentTool = tool(
           options.state,
         );
         options.state.results.push(new ActionResult({ error: errorMsg, includeInMemory: true }));
-        return;
+        return errorMsg;
       }
       logger.info(`Scrolling to percent: ${input.yPercent} with elementNode: ${elementNode.xpath}`);
       await page.scrollToPercent(input.yPercent, elementNode);
@@ -444,13 +454,14 @@ export const scrollToPercentTool = tool(
       options.state,
     );
     options.state.results.push(new ActionResult({ extractedContent: msg, includeInMemory: true }));
+    return msg;
   },
   {
     name: 'scroll_to_percent',
     description:
       'Scrolls to a particular vertical percentage of the document or an element. If no index of element is specified, scroll the whole document.',
     schema: z.object({
-      intent: z.string().default('').describe('purpose of this action'),
+      intent: z.string().describe('purpose of this action'),
       yPercent: z.number().int().describe('percentage to scroll to - min 0, max 100; 0 is top, 100 is bottom'),
       index: z.number().int().nullable().optional().describe('index of the element'),
     }),
@@ -481,7 +492,7 @@ export const scrollToTopTool = tool(
           options.state,
         );
         options.state.results.push(new ActionResult({ error: errorMsg, includeInMemory: true }));
-        return;
+        return errorMsg;
       }
       await page.scrollToPercent(0, elementNode);
     } else {
@@ -496,12 +507,13 @@ export const scrollToTopTool = tool(
       options.state,
     );
     options.state.results.push(new ActionResult({ extractedContent: msg, includeInMemory: true }));
+    return msg;
   },
   {
     name: 'scroll_to_top',
     description: 'Scroll the document in the window or an element to the top',
     schema: z.object({
-      intent: z.string().default('').describe('purpose of this action'),
+      intent: z.string().describe('purpose of this action'),
       index: z.number().int().nullable().optional().describe('index of the element'),
     }),
   },
@@ -531,7 +543,7 @@ export const scrollToBottomTool = tool(
           options.state,
         );
         options.state.results.push(new ActionResult({ error: errorMsg, includeInMemory: true }));
-        return;
+        return errorMsg;
       }
       await page.scrollToPercent(100, elementNode);
     } else {
@@ -546,12 +558,13 @@ export const scrollToBottomTool = tool(
       options.state,
     );
     options.state.results.push(new ActionResult({ extractedContent: msg, includeInMemory: true }));
+    return msg;
   },
   {
     name: 'scroll_to_bottom',
     description: 'Scroll the document in the window or an element to the bottom',
     schema: z.object({
-      intent: z.string().default('').describe('purpose of this action'),
+      intent: z.string().describe('purpose of this action'),
       index: z.number().int().nullable().optional().describe('index of the element'),
     }),
   },
@@ -582,7 +595,7 @@ export const previousPageTool = tool(
           options.state,
         );
         options.state.results.push(new ActionResult({ error: errorMsg, includeInMemory: true }));
-        return;
+        return errorMsg;
       }
 
       try {
@@ -597,7 +610,7 @@ export const previousPageTool = tool(
             options.state,
           );
           options.state.results.push(new ActionResult({ extractedContent: msg, includeInMemory: true }));
-          return;
+          return msg;
         }
       } catch (error) {
         logger.warning(`Could not get element scroll info: ${error instanceof Error ? error.message : String(error)}`);
@@ -617,7 +630,7 @@ export const previousPageTool = tool(
           options.state,
         );
         options.state.results.push(new ActionResult({ extractedContent: msg, includeInMemory: true }));
-        return;
+        return msg;
       }
 
       await page.scrollToPreviousPage();
@@ -631,13 +644,14 @@ export const previousPageTool = tool(
       options.state,
     );
     options.state.results.push(new ActionResult({ extractedContent: msg, includeInMemory: true }));
+    return msg;
   },
   {
     name: 'previous_page',
     description:
       'Scroll the document in the window or an element to the previous page. If no index is specified, scroll the whole document.',
     schema: z.object({
-      intent: z.string().default('').describe('purpose of this action'),
+      intent: z.string().describe('purpose of this action'),
       index: z.number().int().nullable().optional().describe('index of the element'),
     }),
   },
@@ -668,7 +682,7 @@ export const nextPageTool = tool(
           options.state,
         );
         options.state.results.push(new ActionResult({ error: errorMsg, includeInMemory: true }));
-        return;
+        return errorMsg;
       }
 
       // Check if element is already at bottom of its scrollable area
@@ -685,7 +699,7 @@ export const nextPageTool = tool(
             options.state,
           );
           options.state.results.push(new ActionResult({ extractedContent: msg, includeInMemory: true }));
-          return;
+          return msg;
         }
       } catch (error) {
         // If we can't get scroll info, let the scrollToNextPage method handle it
@@ -706,7 +720,7 @@ export const nextPageTool = tool(
           options.state,
         );
         options.state.results.push(new ActionResult({ extractedContent: msg, includeInMemory: true }));
-        return;
+        return msg;
       }
 
       await page.scrollToNextPage();
@@ -720,13 +734,14 @@ export const nextPageTool = tool(
       options.state,
     );
     options.state.results.push(new ActionResult({ extractedContent: msg, includeInMemory: true }));
+    return msg;
   },
   {
     name: 'next_page',
     description:
       'Scroll the document in the window or an element to the next page. If no index is specified, scroll the whole document.',
     schema: z.object({
-      intent: z.string().default('').describe('purpose of this action'),
+      intent: z.string().describe('purpose of this action'),
       index: z.number().int().nullable().optional().describe('index of the element'),
     }),
   },
@@ -742,7 +757,7 @@ export const scrollToTextTool = tool(
       options.context,
       options.state,
     );
-
+    logger.info('Scroll to text', input, options);
     const page = await options.context.browserContext.getCurrentPage();
     try {
       const scrolled = await page.scrollToText(input.text, input.nth);
@@ -757,6 +772,7 @@ export const scrollToTextTool = tool(
         options.state,
       );
       options.state.results.push(new ActionResult({ extractedContent: msg, includeInMemory: true }));
+      return msg;
     } catch (error) {
       const msg = t('act_scrollToText_failed', [error instanceof Error ? error.message : String(error)]);
       options.context.eventContext.emitAgentEvent(
@@ -767,13 +783,14 @@ export const scrollToTextTool = tool(
         options.state,
       );
       options.state.results.push(new ActionResult({ error: msg, includeInMemory: true }));
+      return msg;
     }
   },
   {
     name: 'scroll_to_text',
     description: 'If you dont find something which you want to interact with in current viewport, try to scroll to it',
     schema: z.object({
-      intent: z.string().default('').describe('purpose of this action'),
+      intent: z.string().describe('purpose of this action'),
       text: z.string().describe('text to scroll to'),
       nth: z
         .number()
@@ -807,13 +824,14 @@ export const sendKeysTool = tool(
       options.state,
     );
     options.state.results.push(new ActionResult({ extractedContent: msg, includeInMemory: true }));
+    return msg;
   },
   {
     name: 'send_keys',
     description:
       'Send strings of special keys like Backspace, Insert, PageDown, Delete, Enter. Shortcuts such as `Control+o`, `Control+Shift+T` are supported as well. This gets used in keyboard press. Be aware of different operating systems and their shortcuts',
     schema: z.object({
-      intent: z.string().default('').describe('purpose of this action'),
+      intent: z.string().describe('purpose of this action'),
       keys: z.string().describe('keys to send'),
     }),
   },
@@ -850,7 +868,7 @@ export const getDropdownOptionsTool = tool(
           includeInMemory: true,
         }),
       );
-      return;
+      return errorMsg;
     }
 
     try {
@@ -882,6 +900,7 @@ export const getDropdownOptionsTool = tool(
             includeInMemory: true,
           }),
         );
+        return msg;
       } else {
         const msg = t('act_getDropdownOptions_noOptions');
         options.context.eventContext.emitAgentEvent(
@@ -897,6 +916,7 @@ export const getDropdownOptionsTool = tool(
             includeInMemory: true,
           }),
         );
+        return msg;
       }
     } catch (error) {
       const errorMsg = t('act_getDropdownOptions_failed', [error instanceof Error ? error.message : String(error)]);
@@ -913,13 +933,14 @@ export const getDropdownOptionsTool = tool(
           includeInMemory: true,
         }),
       );
+      return errorMsg;
     }
   },
   {
     name: 'get_dropdown_options',
     description: 'Get all options from a native dropdown',
     schema: z.object({
-      intent: z.string().default('').describe('purpose of this action'),
+      intent: z.string().describe('purpose of this action'),
       index: z.number().int().describe('index of the dropdown element'),
     }),
   },
@@ -955,7 +976,7 @@ export const selectDropdownOptionTool = tool(
           includeInMemory: true,
         }),
       );
-      return;
+      return errorMsg;
     }
 
     if (!elementNode.tagName || elementNode.tagName.toLowerCase() !== 'select') {
@@ -976,7 +997,7 @@ export const selectDropdownOptionTool = tool(
           includeInMemory: true,
         }),
       );
-      return;
+      return errorMsg;
     }
 
     logger.debug(`Attempting to select '${input.text}' using xpath: ${elementNode.xpath}`);
@@ -997,6 +1018,7 @@ export const selectDropdownOptionTool = tool(
           includeInMemory: true,
         }),
       );
+      return msg;
     } catch (error) {
       const errorMsg = t('act_selectDropdownOption_failed', [error instanceof Error ? error.message : String(error)]);
       options.context.eventContext.emitAgentEvent(
@@ -1012,13 +1034,14 @@ export const selectDropdownOptionTool = tool(
           includeInMemory: true,
         }),
       );
+      return errorMsg;
     }
   },
   {
     name: 'select_dropdown_option',
     description: 'Select dropdown option for interactive element index by the text of the option you want to select',
     schema: z.object({
-      intent: z.string().default('').describe('purpose of this action'),
+      intent: z.string().describe('purpose of this action'),
       index: z.number().int().describe('index of the dropdown element'),
       text: z.string().describe('text of the option'),
     }),
@@ -1046,12 +1069,13 @@ export const waitTool = tool(
       options.state,
     );
     options.state.results.push(new ActionResult({ extractedContent: msg, includeInMemory: true }));
+    return msg;
   },
   {
     name: 'wait',
     description: 'Wait for x seconds default 3, do NOT use this action unless user asks to wait explicitly',
     schema: z.object({
-      intent: z.string().default('').describe('purpose of this action'),
+      intent: z.string().describe('purpose of this action'),
       seconds: z.number().int().default(3).describe('amount of seconds'),
     }),
   },

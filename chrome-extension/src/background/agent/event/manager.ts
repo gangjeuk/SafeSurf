@@ -1,7 +1,7 @@
 import { AgentEvent } from './types';
 import { createLogger } from '../../log';
 import type { EventType, EventCallback, ExecutionState, Actors } from './types';
-import type { agentContextSchema, agentStateSchema } from '../types';
+import type { agentContextSchema, agentStateSchema } from '../agents/navigator';
 import type { z } from 'zod';
 
 const logger = createLogger('event-manager');
