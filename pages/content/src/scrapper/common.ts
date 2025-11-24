@@ -29,8 +29,17 @@ export const scrapPage = async (): Promise<IPageScrapData | null> => {
   });
 
   if (content) {
-    const mdContent = turndown.turndown(content);
-    return { mdContent: mdContent, title: rest.title ?? undefined, author: rest.siteName ?? undefined };
+    let mdContent = turndown.turndown(content);
+
+    if (rest.excerpt) {
+      mdContent = rest.excerpt + '\n' + mdContent;
+    }
+
+    return {
+      mdContent: mdContent,
+      title: rest.title ?? rest.siteName ?? undefined,
+      author: rest.siteName ?? undefined,
+    };
   }
 
   return null;

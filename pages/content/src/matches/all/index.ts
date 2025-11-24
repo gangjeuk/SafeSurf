@@ -22,8 +22,8 @@ async function readyPageLoad() {
   await new Promise(resolve => {
     // Wait for dom to stop changing for at least 1 second
     let len = document.body?.innerText?.length || 0;
-    const timeout: Timer;
-    const timeout2: Timer;
+    let timeout: ReturnType<typeof window.setTimeout> | null = null;
+    let timeout2: ReturnType<typeof window.setTimeout> | null = null;
 
     const fn = () => {
       const newLen = document.body?.innerText?.length || 0;
