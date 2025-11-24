@@ -178,7 +178,7 @@ importers:
         version: 1.0.0(@langchain/core@1.0.4(openai@6.9.0(ws@8.18.3)(zod@4.1.12)))
       '@langchain/community':
         specifier: ^1.0.2
-        version: 1.0.3(@browserbasehq/sdk@2.6.0)(@browserbasehq/stagehand@1.14.0(@playwright/test@1.56.1)(deepmerge@4.3.1)(dotenv@17.2.2)(openai@6.9.0(ws@8.18.3)(zod@4.1.12))(zod@4.1.12))(@ibm-cloud/watsonx-ai@1.7.3)(@langchain/core@1.0.4(openai@6.9.0(ws@8.18.3)(zod@4.1.12)))(@mozilla/readability@0.6.0)(cheerio@1.1.2)(fast-xml-parser@5.3.1)(ibm-cloud-sdk-core@5.4.4)(ignore@5.3.2)(jsdom@27.2.0)(jsonwebtoken@9.0.2)(lodash@4.17.21)(openai@6.9.0(ws@8.18.3)(zod@4.1.12))(playwright@1.56.1)(ws@8.18.3)
+        version: 1.0.3(@browserbasehq/sdk@2.6.0)(@browserbasehq/stagehand@1.14.0(@playwright/test@1.56.1)(deepmerge@4.3.1)(dotenv@17.2.2)(openai@6.9.0(ws@8.18.3)(zod@4.1.12))(zod@4.1.12))(@ibm-cloud/watsonx-ai@1.7.3)(@langchain/core@1.0.4(openai@6.9.0(ws@8.18.3)(zod@4.1.12)))(@mlc-ai/web-llm@0.2.79)(@mozilla/readability@0.6.0)(cheerio@1.1.2)(fast-xml-parser@5.3.1)(ibm-cloud-sdk-core@5.4.4)(ignore@5.3.2)(jsdom@27.2.0)(jsonwebtoken@9.0.2)(lodash@4.17.21)(openai@6.9.0(ws@8.18.3)(zod@4.1.12))(playwright@1.56.1)(ws@8.18.3)
       '@langchain/core':
         specifier: 1.0.4
         version: 1.0.4(openai@6.9.0(ws@8.18.3)(zod@4.1.12))
@@ -479,9 +479,6 @@ importers:
       turndown:
         specifier: ^7.2.2
         version: 7.2.2
-      youtube-transcript-plus:
-        specifier: ^1.1.1
-        version: 1.1.1
     devDependencies:
       '@extension/hmr':
         specifier: workspace:*
@@ -517,43 +514,6 @@ importers:
       '@extension/vite-config':
         specifier: workspace:*
         version: link:../../packages/vite-config
-
-  pages/new-tab:
-    dependencies:
-      '@extension/i18n':
-        specifier: workspace:*
-        version: link:../../packages/i18n
-      '@extension/shared':
-        specifier: workspace:*
-        version: link:../../packages/shared
-      '@extension/storage':
-        specifier: workspace:*
-        version: link:../../packages/storage
-      '@extension/ui':
-        specifier: workspace:*
-        version: link:../../packages/ui
-      gridstack:
-        specifier: ^12.3.3
-        version: 12.3.3
-      react-calendar:
-        specifier: ^6.0.0
-        version: 6.0.0(@types/react@19.2.3)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-      react-fast-compare:
-        specifier: ^3.2.2
-        version: 3.2.2
-    devDependencies:
-      '@extension/tailwindcss-config':
-        specifier: workspace:*
-        version: link:../../packages/tailwindcss-config
-      '@extension/tsconfig':
-        specifier: workspace:*
-        version: link:../../packages/tsconfig
-      '@extension/vite-config':
-        specifier: workspace:*
-        version: link:../../packages/vite-config
-      sass:
-        specifier: ^1.89.0
-        version: 1.94.0
 
   pages/options:
     dependencies:
@@ -1949,6 +1909,9 @@ packages:
   '@mixmark-io/domino@2.2.0':
     resolution: {integrity: sha512-Y28PR25bHXUg88kCV7nivXrP2Nj2RueZ3/l/jdx6J9f8J4nsEGcgX0Qe6lt7Pa+J79+kPiJU3LguR6O/6zrLOw==}
 
+  '@mlc-ai/web-llm@0.2.79':
+    resolution: {integrity: sha512-Hy1ZHQ0o2bZGZoVnGK48+fts/ZSKwLe96xjvqL/6C59Mem9HoHTcFE07NC2E23mRmhd01tL655N6CPeYmwWgwQ==}
+
   '@mozilla/readability@0.6.0':
     resolution: {integrity: sha512-juG5VWh4qAivzTAeMzvY9xs9HY5rAcr2E4I7tiSSCokRFi7XIZCAu92ZkSTsIj1OPceCifL3cpfteP3pDT9/QQ==}
     engines: {node: '>=14.0.0'}
@@ -2872,9 +2835,6 @@ packages:
 
   '@webassemblyjs/wast-printer@1.14.1':
     resolution: {integrity: sha512-kPSSXE6De1XOR820C90RIo2ogvZG+c3KiHzqUoO/F34Y2shGzesfqv7o57xrxovZJH/MetF5UjroJ/R/3isoiw==}
-
-  '@wojtekmaj/date-utils@2.0.2':
-    resolution: {integrity: sha512-Do66mSlSNifFFuo3l9gNKfRMSFi26CRuQMsDJuuKO/ekrDWuTTtE4ZQxoFCUOG+NgxnpSeBq/k5TY8ZseEzLpA==}
 
   '@xtuc/ieee754@1.2.0':
     resolution: {integrity: sha512-DX8nKgqcGwsc0eJSqYt5lwP4DH5FlHnmuWWBRy7X0NcaGR0ZtuyeESgMwTYVEtxmsNGY+qit4QYT/MIYTOTPeA==}
@@ -4412,9 +4372,6 @@ packages:
     resolution: {integrity: sha512-b1O07XYq8eRuVzBNgJLstU6FYc1tS6wnMtF1I1D9lE8LxZSOGZ7LhxN54yPP6mGw5f2CkXY2BQUL9Fx41qvcIg==}
     engines: {node: '>= 14'}
 
-  get-user-locale@3.0.0:
-    resolution: {integrity: sha512-iJfHSmdYV39UUBw7Jq6GJzeJxUr4U+S03qdhVuDsR9gCEnfbqLy9gYDJFBJQL1riqolFUKQvx36mEkp2iGgJ3g==}
-
   git-raw-commits@4.0.0:
     resolution: {integrity: sha512-ICsMM1Wk8xSGMowkOmPrzo2Fgmfo4bMHLNX6ytHjajRJUqvHOw/TFapQ+QG75c3X/tTDDhOSRPGC52dDbNM8FQ==}
     engines: {node: '>=16'}
@@ -4477,9 +4434,6 @@ packages:
 
   graphemer@1.4.0:
     resolution: {integrity: sha512-EtKwoO6kxCL9WO5xipiHTZlSzBm7WLT627TqC/uVRd0HKmq8NXyebnNYxDoBi7wt8eTWrUrKXCOVaFq9x1kgag==}
-
-  gridstack@12.3.3:
-    resolution: {integrity: sha512-Bboi4gj7HXGnx1VFXQNde4Nwi5srdUSuCCnOSszKhFjBs8EtMEWhsKX02BjIKkErq/FjQUkNUbXUYeQaVMQ0jQ==}
 
   groq-sdk@0.19.0:
     resolution: {integrity: sha512-vdh5h7ORvwvOvutA80dKF81b0gPWHxu6K/GOJBOM0n6p6CSqAVLhFfeS79Ef0j/yCycDR09jqY7jkYz9dLiS6w==}
@@ -5175,10 +5129,6 @@ packages:
 
   mdn-data@2.12.2:
     resolution: {integrity: sha512-IEn+pegP1aManZuckezWCO+XZQDplx1366JoVhTpMpBB1sPey/SbveZQUosKiKiGYjg1wH4pMlNgXbCiYgihQA==}
-
-  memoize@10.2.0:
-    resolution: {integrity: sha512-DeC6b7QBrZsRs3Y02A6A7lQyzFbsQbqgjI6UW0GigGWV+u1s25TycMr0XHZE4cJce7rY/vyw2ctMQqfDkIhUEA==}
-    engines: {node: '>=18'}
 
   meow@12.1.1:
     resolution: {integrity: sha512-BhXM0Au22RwUneMPwSCnyhTOizdWoIEPU9sp0Aqa1PnDMR5Wv2FGXYDjuzJEIX+Eo2Rb8xuYe5jrnm5QowQFkw==}
@@ -5880,16 +5830,6 @@ packages:
   randomfill@1.0.4:
     resolution: {integrity: sha512-87lcbR8+MhcWcUiQ+9e+Rwx8MyR2P7qnt15ynUlbm3TU/fjbgz4GsvfSUDTemtCCtVCqb4ZcEFlyPNTh9bBTLw==}
 
-  react-calendar@6.0.0:
-    resolution: {integrity: sha512-6wqaki3Us0DNDjZDr0DYIzhSFprNoy4FdPT9Pjy5aD2hJJVjtJwmdMT9VmrTUo949nlk35BOxehThxX62RkuRQ==}
-    peerDependencies:
-      '@types/react': ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
-      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
-      react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
-    peerDependenciesMeta:
-      '@types/react':
-        optional: true
-
   react-dom@19.2.0:
     resolution: {integrity: sha512-UlbRu4cAiGaIewkPyiRGJk0imDN2T3JjieT6spoL2UeSf5od4n5LB/mQ4ejmxhCFT1tYe8IvaFulzynWovsEFQ==}
     peerDependencies:
@@ -5899,9 +5839,6 @@ packages:
     resolution: {integrity: sha512-gdlJjD7NWr0IfkPlaREN2d9uUZUlksrfOx7SX62VRerwXbMY6ftGCIZua1VG1aXFNOimhISsTq+Owp725b9SiA==}
     peerDependencies:
       react: '>=16.13.1'
-
-  react-fast-compare@3.2.2:
-    resolution: {integrity: sha512-nsO+KSNgo1SbJqJEYRE9ERzo7YtYbou/OqjSQKxV7jcKox7+usiUVZOAC+XnDOABXggQTno0Y1CpVnuWEc1boQ==}
 
   react-icons@5.5.0:
     resolution: {integrity: sha512-MEFcXdkP3dLo8uumGI5xN3lDFNsRtrjbOEKDLD7yv76v4wpnEq2Lt2qeHaQOr34I/wPN3s3+N08WkQ+CW37Xiw==}
@@ -6913,9 +6850,6 @@ packages:
     engines: {node: '>=10'}
     hasBin: true
 
-  warning@4.0.3:
-    resolution: {integrity: sha512-rpJyN222KWIvHJ/F53XSZv0Zl/accqHR8et1kpaMTD/fLCRxtV8iX8czMzY7sVZupTI3zcUTg8eycS2kNF9l6w==}
-
   watchpack@2.4.4:
     resolution: {integrity: sha512-c5EGNOiyxxV5qmTtAB7rbiXxi1ooX1pQKMLX/MIabJjRA0SJBQOjKF+KSVfHkr9U1cADPon0mRiVe/riyaiDUA==}
     engines: {node: '>=10.13.0'}
@@ -7131,10 +7065,6 @@ packages:
   yoctocolors@2.1.2:
     resolution: {integrity: sha512-CzhO+pFNo8ajLM2d2IW/R93ipy99LWjtwblvC1RsoSUMZgyLbYFr221TnSNT7GjGdYui6P459mw9JH/g/zW2ug==}
     engines: {node: '>=18'}
-
-  youtube-transcript-plus@1.1.1:
-    resolution: {integrity: sha512-KmAcn7eBPMgSnPJosCaaRp6/eqOAXk9p5f5ExBf+aD0M74Hud5RzbwHVoFpR5wOS++QqrrFaFhq9eiaWqWDlXg==}
-    engines: {node: '>=18.0.0'}
 
   zip-stream@6.0.1:
     resolution: {integrity: sha512-zK7YHHz4ZXpW89AHXUPbQVGKI7uvkd3hzusTdotCg1UxyaVtg0zFJSTfW/Dq5f7OBBVnq6cZIaC8Ti4hb6dtCA==}
@@ -8172,7 +8102,7 @@ snapshots:
       - openai
       - ws
 
-  '@langchain/community@1.0.3(@browserbasehq/sdk@2.6.0)(@browserbasehq/stagehand@1.14.0(@playwright/test@1.56.1)(deepmerge@4.3.1)(dotenv@17.2.2)(openai@6.9.0(ws@8.18.3)(zod@4.1.12))(zod@4.1.12))(@ibm-cloud/watsonx-ai@1.7.3)(@langchain/core@1.0.4(openai@6.9.0(ws@8.18.3)(zod@4.1.12)))(@mozilla/readability@0.6.0)(cheerio@1.1.2)(fast-xml-parser@5.3.1)(ibm-cloud-sdk-core@5.4.4)(ignore@5.3.2)(jsdom@27.2.0)(jsonwebtoken@9.0.2)(lodash@4.17.21)(openai@6.9.0(ws@8.18.3)(zod@4.1.12))(playwright@1.56.1)(ws@8.18.3)':
+  '@langchain/community@1.0.3(@browserbasehq/sdk@2.6.0)(@browserbasehq/stagehand@1.14.0(@playwright/test@1.56.1)(deepmerge@4.3.1)(dotenv@17.2.2)(openai@6.9.0(ws@8.18.3)(zod@4.1.12))(zod@4.1.12))(@ibm-cloud/watsonx-ai@1.7.3)(@langchain/core@1.0.4(openai@6.9.0(ws@8.18.3)(zod@4.1.12)))(@mlc-ai/web-llm@0.2.79)(@mozilla/readability@0.6.0)(cheerio@1.1.2)(fast-xml-parser@5.3.1)(ibm-cloud-sdk-core@5.4.4)(ignore@5.3.2)(jsdom@27.2.0)(jsonwebtoken@9.0.2)(lodash@4.17.21)(openai@6.9.0(ws@8.18.3)(zod@4.1.12))(playwright@1.56.1)(ws@8.18.3)':
     dependencies:
       '@browserbasehq/stagehand': 1.14.0(@playwright/test@1.56.1)(deepmerge@4.3.1)(dotenv@17.2.2)(openai@6.9.0(ws@8.18.3)(zod@4.1.12))(zod@4.1.12)
       '@ibm-cloud/watsonx-ai': 1.7.3
@@ -8189,6 +8119,7 @@ snapshots:
       zod: 4.1.12
     optionalDependencies:
       '@browserbasehq/sdk': 2.6.0
+      '@mlc-ai/web-llm': 0.2.79
       '@mozilla/readability': 0.6.0
       cheerio: 1.1.2
       fast-xml-parser: 5.3.1
@@ -8332,6 +8263,11 @@ snapshots:
       read-yaml-file: 1.1.0
 
   '@mixmark-io/domino@2.2.0': {}
+
+  '@mlc-ai/web-llm@0.2.79':
+    dependencies:
+      loglevel: 1.9.2
+    optional: true
 
   '@mozilla/readability@0.6.0': {}
 
@@ -9278,8 +9214,6 @@ snapshots:
     dependencies:
       '@webassemblyjs/ast': 1.14.1
       '@xtuc/long': 4.2.2
-
-  '@wojtekmaj/date-utils@2.0.2': {}
 
   '@xtuc/ieee754@1.2.0': {}
 
@@ -11024,10 +10958,6 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  get-user-locale@3.0.0:
-    dependencies:
-      memoize: 10.2.0
-
   git-raw-commits@4.0.0:
     dependencies:
       dargs: 8.1.0
@@ -11099,8 +11029,6 @@ snapshots:
   grapheme-splitter@1.0.4: {}
 
   graphemer@1.4.0: {}
-
-  gridstack@12.3.3: {}
 
   groq-sdk@0.19.0:
     dependencies:
@@ -11256,7 +11184,8 @@ snapshots:
 
   immediate@3.0.6: {}
 
-  immutable@5.1.2: {}
+  immutable@5.1.2:
+    optional: true
 
   import-fresh@3.3.1:
     dependencies:
@@ -11848,10 +11777,6 @@ snapshots:
 
   mdn-data@2.12.2:
     optional: true
-
-  memoize@10.2.0:
-    dependencies:
-      mimic-function: 5.0.1
 
   meow@12.1.1: {}
 
@@ -12506,17 +12431,6 @@ snapshots:
       randombytes: 2.1.0
       safe-buffer: 5.2.1
 
-  react-calendar@6.0.0(@types/react@19.2.3)(react-dom@19.2.0(react@19.2.0))(react@19.2.0):
-    dependencies:
-      '@wojtekmaj/date-utils': 2.0.2
-      clsx: 2.1.1
-      get-user-locale: 3.0.0
-      react: 19.2.0
-      react-dom: 19.2.0(react@19.2.0)
-      warning: 4.0.3
-    optionalDependencies:
-      '@types/react': 19.2.3
-
   react-dom@19.2.0(react@19.2.0):
     dependencies:
       react: 19.2.0
@@ -12526,8 +12440,6 @@ snapshots:
     dependencies:
       '@babel/runtime': 7.27.1
       react: 19.2.0
-
-  react-fast-compare@3.2.2: {}
 
   react-icons@5.5.0(react@19.2.0):
     dependencies:
@@ -12793,6 +12705,7 @@ snapshots:
       source-map-js: 1.2.1
     optionalDependencies:
       '@parcel/watcher': 2.5.1
+    optional: true
 
   saxes@6.0.0:
     dependencies:
@@ -13670,10 +13583,6 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  warning@4.0.3:
-    dependencies:
-      loose-envify: 1.4.0
-
   watchpack@2.4.4:
     dependencies:
       glob-to-regexp: 0.4.1
@@ -13957,8 +13866,6 @@ snapshots:
   yoctocolors-cjs@2.1.3: {}
 
   yoctocolors@2.1.2: {}
-
-  youtube-transcript-plus@1.1.1: {}
 
   zip-stream@6.0.1:
     dependencies:
