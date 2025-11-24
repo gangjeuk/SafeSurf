@@ -14,9 +14,14 @@ import { Actors, ExecutionState } from '../event/types';
 import { filterExternalContent } from '../messages/utils';
 import { HumanMessage } from '@langchain/core/messages';
 import { createLogger } from '@src/background/log';
+import { createAgent, createMiddleware } from 'langchain';
 import { z } from 'zod';
 import type { BaseAgentOptions, ExtraAgentOptions } from './base';
+import type { agentContextSchema, agentStateSchema } from './navigator';
 import type { AgentOutput } from '../types';
+import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
+import type { InteropZodObject } from '@langchain/core/utils/types';
+import type { ReactAgent } from 'langchain';
 
 const logger = createLogger('PlannerAgent');
 
@@ -44,6 +49,78 @@ export const plannerOutputSchema = z.object({
     }),
   ]),
 });
+
+const __plannerOutputSchema = z.object({
+  // evaluation
+  observation: z.string(),
+  challenges: z.string(),
+
+  // steps
+  steps: z.string(),
+  next_steps: z.string(),
+
+  // status flag
+  done: z.boolean(),
+  web_task: z.boolean(),
+
+  // context
+  reasoning: z.string(),
+  final_answer: z.string(),
+});
+
+const middleware = createMiddleware<typeof agentStateSchema, typeof agentContextSchema>({
+  name: 'PlannerMiddleware',
+  beforeAgent: (state, runtime) => {
+    runtime.context.eventContext.emitAgentEvent(
+      Actors.PLANNER,
+      ExecutionState.STEP_START,
+      'Planning...',
+      runtime.context,
+      state,
+    );
+  },
+  afterAgent: (state, runtime) => {
+    runtime.context.eventContext.emitAgentEvent(
+      Actors.PLANNER,
+      ExecutionState.STEP_OK,
+      state.finalAnswer ?? '',
+      runtime.context,
+      state,
+    );
+  },
+});
+
+let planner: ReactAgent<
+  z.infer<typeof __plannerOutputSchema>,
+  undefined,
+  InteropZodObject,
+  [typeof middleware]
+> | null = null;
+export function createPlannerAgent(model: BaseChatModel) {
+  if (planner) {
+    return planner;
+  }
+
+  planner = createAgent({ model: model, responseFormat: __plannerOutputSchema, middleware: [middleware] });
+
+  return planner;
+}
+
+let replanner: ReactAgent<
+  z.infer<typeof __plannerOutputSchema>,
+  undefined,
+  InteropZodObject,
+  [typeof middleware]
+> | null = null;
+export function createReplannerAgent(model: BaseChatModel) {
+  if (replanner) {
+    return replanner;
+  }
+
+  replanner = createAgent({ model: model, responseFormat: __plannerOutputSchema, middleware: [middleware] });
+
+  return replanner;
+}
 
 export type PlannerOutput = z.infer<typeof plannerOutputSchema>;
 
