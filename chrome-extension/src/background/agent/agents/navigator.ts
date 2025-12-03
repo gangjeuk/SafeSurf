@@ -15,25 +15,173 @@ import {
   RequestCancelledError,
 } from './errors';
 import { buildDynamicActionSchema } from '../actions/builder';
+import { EventManager } from '../event/manager';
 import { Actors, ExecutionState } from '../event/types';
 import { AgentStepRecord } from '../history';
+import { GoogleSearch } from '../tools/search/google';
 import { agentBrainSchema, ActionResult } from '../types';
 import { HumanMessage } from '@langchain/core/messages';
+import BrowserContext from '@src/background/browser/context';
 import { HistoryTreeProcessor } from '@src/background/browser/dom/history/service';
 import { calcBranchPathHashSet } from '@src/background/browser/dom/views';
 import { BrowserStateHistory, URLNotAllowedError } from '@src/background/browser/views';
 import { createLogger } from '@src/background/log';
 import { convertZodToJsonSchema, repairJsonString } from '@src/background/utils';
+import { createAgent, createMiddleware } from 'langchain';
 import { z } from 'zod';
 import type { AgentOutput } from '../types';
 import type { BaseAgentOptions, ExtraAgentOptions } from './base';
 import type { Action } from '../actions/builder';
+import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import type { BaseMessage } from '@langchain/core/messages';
 import type { DOMHistoryElement } from '@src/background/browser/dom/history/view';
 import type { BrowserState } from '@src/background/browser/views';
+import type { ReactAgent, ResponseFormatUndefined } from 'langchain';
 
 const logger = createLogger('NavigatorAgent');
 
+export const agentContextSchema = z.object({
+  taskId: z.string(),
+  eventContext: z.instanceof(EventManager),
+  browserContext: z.instanceof(BrowserContext),
+  // options: z.object<AgentOptions>(),
+  maxSteps: z.number().default(100),
+  useVision: z.boolean().default(false),
+  maxFailures: z.number().default(3),
+  retryDelay: z.number().default(10),
+  maxInputTokens: z.number().default(128000),
+});
+
+export const agentStateSchema = z.object({
+  paused: z.boolean().default(false),
+  stopped: z.boolean().default(false),
+  consecutiveFailCount: z.number().default(0),
+  nSteps: z.number().default(0),
+  finalAnswer: z.string().nullable(),
+  results: z.array(z.instanceof(ActionResult)).default([]),
+});
+
+let cachedPathHashes = new Set<string>();
+const middleware = createMiddleware({
+  name: 'NavigatorMiddleware',
+  stateSchema: agentStateSchema,
+  contextSchema: agentContextSchema,
+  beforeAgent: (state, runtime) => {
+    runtime.context.eventContext.emitAgentEvent(
+      Actors.NAVIGATOR,
+      ExecutionState.STEP_START,
+      'Navigating...',
+      runtime.context,
+      state,
+    );
+  },
+  beforeModel: state => {
+    if (state.paused || state.stopped) {
+      return { jumpTo: 'end' };
+    }
+    return;
+  },
+  afterAgent: async (state, runtime) => {
+    runtime.context.eventContext.emitAgentEvent(
+      Actors.NAVIGATOR,
+      ExecutionState.STEP_OK,
+      state.finalAnswer ?? '',
+      runtime.context,
+      state,
+    );
+
+    const browserContext = runtime.context.browserContext;
+    const browserState = await browserContext.getState(runtime.context.useVision);
+    logger.info('Browser state', browserState);
+  },
+  afterModel: (state, runtime) => {
+    console.log(state, runtime);
+    for (const m of state.messages) {
+      console.log(m.toJSON());
+    }
+    if (state.paused || state.stopped) {
+      return { jumpTo: 'end' };
+    }
+
+    return;
+  },
+  wrapToolCall: async (request, handler) => {
+    logger.info(request, handler);
+
+    // If tool has 'index' as a parameter add browser cache data
+    const index = request.toolCall.args?.index;
+
+    if (index !== undefined) {
+      // Before tool call
+      const browserContext = request.runtime.context.browserContext;
+      const browserState = await browserContext.getState(request.runtime.context.useVision);
+      const newPathHashes = await calcBranchPathHashSet(browserState);
+      if (!newPathHashes.isSubsetOf(cachedPathHashes)) {
+        request.state.messages.push(new HumanMessage(`Action result: ${'Something new appeared after action.'}`));
+      }
+
+      cachedPathHashes = newPathHashes;
+
+      // Tool call
+      const ret = handler(request);
+
+      // After tool call
+      const domElement = browserState.selectorMap.get(index);
+      if (domElement) {
+        const interactedElement = HistoryTreeProcessor.convertDomElementToHistoryElement(domElement);
+        logger.info('Interacted element', interactedElement);
+        request.state.messages.push(
+          new HumanMessage(`Interacted element. ${JSON.stringify(interactedElement.toDict())}`),
+        );
+      }
+
+      return ret;
+    }
+
+    return handler(request);
+  },
+});
+
+let navigatorSingletone: ReactAgent<
+  ResponseFormatUndefined,
+  typeof agentStateSchema,
+  typeof agentContextSchema,
+  [typeof middleware]
+> | null = null;
+
+export function createNaviageAgent(model: BaseChatModel) {
+  if (navigatorSingletone !== null) {
+    return navigatorSingletone;
+  }
+  navigatorSingletone = createAgent({
+    model: model,
+    tools: [
+      // TODO: use only GoogleSearch for now
+      // goToUrlTool,
+      // goBackTool,
+      // getDropdownOptionsTool,
+      // inputTextTool,
+      // clickElementTool,
+      // closeTabTool,
+      // scrollToBottomTool,
+      // scrollToPercentTool,
+      // scrollToTextTool,
+      // scrollToTopTool,
+      // searchGoogleTool,
+      // selectDropdownOptionTool,
+      // sendKeysTool,
+      // switchTabTool,
+      // nextPageTool,
+      // previousPageTool,
+      // cacheContentTool,
+      new GoogleSearch(),
+    ],
+    middleware: [middleware],
+    stateSchema: agentStateSchema,
+    contextSchema: agentContextSchema,
+  });
+  return navigatorSingletone;
+}
 interface ParsedModelOutput {
   current_state?: {
     next_goal?: string;
